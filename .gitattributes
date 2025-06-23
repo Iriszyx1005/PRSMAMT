@@ -1,1 +1,2 @@
 01META_All.txt.gz filter=lfs diff=lfs merge=lfs -text
+LC_related_traits filter=lfs diff=lfs merge=lfs -text
