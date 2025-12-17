@@ -1,0 +1,56 @@
+## Existing PRSs model
+
+Using OncoArray Asian population as an example
+
+```sh
+cd /home/sshen/mount/t7920/Disk_m2/PRS_yxzhang/train/LC
+nohup bash a.sh >  a_log.txt 2>&1 &
+#!/bin/bash
+plink_dir="/home/sshen/mount/t7920/Disk_m2/dbGap/oncoarray_asian/plink_oncoarray_asian"
+trait_dir="/home/sshen/mount/t7920/Disk_m2/PRS_yxzhang/train/LC"
+traits=(PGS002808 PGS004442 PGS004512)
+pop="Onco_Asian"
+
+ for i in $(seq 0 2); do
+    trait_name=${traits[$i]}
+    echo "prs trait: $trait_name"
+    cd /home/sshen/mount/t7920/Disk_m2/PRS_yxzhang/train/LC/$trait_name
+    #mkdir Onco_Asian
+   Rscript $trait_dir/32_existing_prss.R $plink_dir $trait_dir $trait_name $pop >  a_log.txt 2>&1 
+done
+
+
+```
+
+```R
+rm(list = ls())
+suppressMessages(library(data.table))
+suppressMessages(library(dplyr))
+suppressMessages(library(pROC))
+suppressMessages(library(caret))
+suppressMessages(library(MASS))
+
+setwd("/home/sshen/mount/t7920/Disk_m2/PRS_yxzhang/train/LC")
+pop="Onco_Asian"
+pheno="/home/sshen/mount/t7920/Disk_m2/PRS_yxzhang/train/asian/pheno_1974"
+  
+a=c("PGS000070","PGS000078","PGS000156","PGS000388","PGS000389","PGS000390","PGS000391","PGS000392","PGS000393","PGS000394","PGS000395","PGS000396","PGS000397","PGS000721","PGS000740","PGS000789","PGS000880","PGS002270","PGS002808","PGS003391","PGS003392","PGS003393","PGS004164","PGS004165","PGS004246","PGS004325","PGS004442","PGS004512","PGS004691","PGS004860","PGS004884","PGS004955")
+
+LC_PRS <- read.table(paste0(pheno,".txt"), header=T)
+
+for(i in a){
+  b=dir(paste0(i,"/",pop))
+  c=b[grepl("_prs",b)]
+  data=read.table(paste0(i,"/",pop,"/",c))
+  data$IID=rownames(data)
+  data$FID=0
+  data=data[,c("FID","IID","prs")]
+  setnames(data,c("prs"),c(paste0(i)))
+  LC_PRS=merge(data,LC_PRS,by=c("FID","IID"))
+  print(i)
+}
+
+write.table(LC_PRS,paste0("LC_",pop,"_PRS_1974.txt"),row.names = F,quote=F,sep="\t")
+
+```
+

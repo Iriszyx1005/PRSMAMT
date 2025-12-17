@@ -1,0 +1,142 @@
+# Popcorn
+
+```sh
+#conda deactivate
+cd /home/sshen/Disk_m2/PRS_yxzhang
+git clone https://github.com/brielin/Popcorn.git
+cd /home/sshen/Disk_m2/PRS_yxzhang/Popcorn
+pip install .
+
+popcorn --help
+```
+
+### ld score
+
+```sh
+cd /home/sshen/Disk_m2/PRS_yxzhang/LDScore/popcorn
+unzip g1000_eur.zip
+unzip g1000_eas.zip
+unzip g1000_afr.zip
+
+
+# AFR population
+#cat 1000GP_Phase3.sample | grep YRI | awk '{print $1 " " $1}' > YRI.samples
+~/software/plink2 --bfile g1000_afr \
+  --chr 6 --from-mb 25 --to-mb 35 \
+  --make-just-bim \
+  --out mhc_afr --threads 1
+
+awk '{print $2}' mhc_afr.bim > mhc_afr.justrs
+
+~/software/plink --bfile g1000_afr --exclude mhc_afr.justrs --maf 0.01 --make-bed --out g1000_afr_noMHC_maf0p01 
+
+# EUR population
+~/software/plink2 --bfile g1000_eur \
+  --chr 6 --from-mb 25 --to-mb 35 \
+  --make-just-bim \
+  --out mhc_eur --threads 1
+
+cat mhc_eur.bim | awk '{print $2}' > mhc_eur.justrs
+
+~/software/plink --bfile g1000_eur  --exclude mhc_eur.justrs --maf 0.01 --make-bed --out g1000_eur_noMHC_maf0p01  
+
+
+# EAS population
+~/software/plink2 --bfile g1000_eas \
+  --chr 6 --from-mb 25 --to-mb 35 \
+  --make-just-bim \
+  --out mhc_eas --threads 1
+
+cat mhc_eas.bim | awk '{print $2}' > mhc_eas.justrs
+
+~/software/plink --bfile g1000_eas  --exclude mhc_eas.justrs --maf 0.01 --make-bed --out g1000_eas_noMHC_maf0p01  
+
+nohup popcorn compute --SNPs_to_store 50000 --bfile g1000_eur_noMHC_maf0p01 EUR.cscore &
+
+nohup popcorn compute --SNPs_to_store 50000 --bfile g1000_eas_noMHC_maf0p01 EAS.cscore &
+
+nohup popcorn compute --SNPs_to_store 50000 --bfile g1000_afr_noMHC_maf0p01 AFR.cscore &
+
+nohup popcorn compute --SNPs_to_store 50000 --bfile1 g1000_eur_noMHC_maf0p01  --bfile2 g1000_afr_noMHC_maf0p01 EUR_AFR_all_gen_eff.cscore &
+
+nohup popcorn compute --SNPs_to_store 50000 --bfile1 g1000_eas_noMHC_maf0p01  --bfile2 g1000_afr_noMHC_maf0p01 EAS_AFR_all_gen_eff.cscore &
+
+
+# for the bivariate (cross-trait)
+popcorn fit --sfile1 data/TRAIT_EUR.sumstats --sfile2 data/TRAIT_AAM.sumstats  --cfile refs/g1000_eur_asw.cscore results/TRAIT_EUR_AAM.out
+
+```
+
+
+
+### gene correlation
+
+```R
+suppressMessages(library(data.table))
+suppressMessages(library(dplyr))
+traits=c("AgeSmk","CigDay","crp","F17","fev1","fev1fvc","fvc","SmkCes","SmkInit") #afr/eas
+traits=c("AgeSmk","CigDay","crp","emphysema_combine","F17_2","F17","fev1","fev1fvc","fvc","SmkCes","SmkInit") #eur
+traits=c("Asthma","COPD","IPF")  #multi
+
+race="multi"
+for(trait in traits){
+  x=fread(paste0("/home/sshen/Disk_m2/PRS_yxzhang/gene_cor/",trait,"_",race,".sumstats.gz"))
+colnames(x)=c("rsid","N","a1","a2","Z")
+
+write.table(x,file = paste0("/home/sshen/Disk_m2/PRS_yxzhang/gene_cor/popcorn/",trait,"_",race,".sumstats.txt"),row.names = F,quote=F,sep="\t")
+  print(trait)
+}
+
+```
+
+
+
+```sh
+cd /home/sshen/Disk_m2/PRS_yxzhang
+nohup bash a.sh  >  a_log.txt 2>&1 &
+1986932
+#trait1s=(AgeSmk_eur CigDay_eur crp_eur emphysema_combine_eur F17_2_eur F17_eur fev1_eur fev1fvc_eur fvc_eur SmkCes_eur SmkInit_eur)
+#trait2s=(AgeSmk_eas CigDay_eas crp_eas F17_eas fev1_eas fev1fvc_eas fvc_eas SmkCes_eas SmkInit_eas)
+
+#trait2s=(AgeSmk_afr CigDay_afr crp_afr F17_afr fev1_afr fev1fvc_afr fvc_afr SmkCes_afr SmkInit_afr)
+
+#trait2s=(Asthma_multi COPD_multi IPF_multi)
+cd /home/sshen/Disk_m2/PRS_yxzhang
+trait1s=(AgeSmk_eur CigDay_eur crp_eur emphysema_combine_eur F17_2_eur F17_eur fev1_eur fev1fvc_eur fvc_eur SmkCes_eur SmkInit_eur)
+trait2s=(AgeSmk_afr CigDay_afr crp_afr F17_afr fev1_afr fev1fvc_afr fvc_afr SmkCes_afr SmkInit_afr)
+
+for i in $(seq 0 10); do
+    trait1=${trait1s[$i]}
+   echo "${trait1}"
+for j in $(seq 0 2); do
+    trait2=${trait2s[$j]}
+     echo "${trait2}"
+nohup popcorn fit --cfile LDScore/popcorn/AFR.cscore --sfile1 gene_cor/popcorn/${trait1}.sumstats.txt --sfile2 gene_cor/popcorn/${trait2}.sumstats.txt gene_cor/result/${trait1}_${trait2}.txt &
+done
+done
+
+trait1=IPF_multi
+trait2=CigDay_afr
+```
+
+```R
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(RColorBrewer)
+setwd("/home/sshen/Disk_m2/PRS_yxzhang/gene_cor/result")
+a=dir()
+s <- a[grep(".txt$", a)]
+re=NULL
+for (i in s){
+  x=fread(i)
+  label=gsub(".txt", "",i)
+  Cor=x[x$V1=="pgi",]$'Val (obs)'
+  SE =x[x$V1=="pgi",]$SE  
+  Z=x[x$V1=="pgi",]$Z  
+  P=x[x$V1=="pgi",]$'P (Z)'
+ re=rbind(re,data.frame(label,Cor,SE,Z,P))
+}
+write.table(re,paste0("gene_cor.txt"),row.names = F,quote=F,sep="\t")
+```
+

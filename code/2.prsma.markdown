@@ -1,0 +1,511 @@
+# Development of PRSMA
+
+## All (eur_all + eas_all + afr_all + amr_all)
+
+### meta (fixed-effect model)
+
+```sh
+cd /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx
+##EUR_All(ILCCO,MVP,FinnGen,UKB,PLCO)
+nohup /home/sshen/software/metal /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx/EUR_All_METAL.txt &
+
+##EAS_All(CKB,BBJ,FLCCA)
+nohup /home/sshen/software/metal /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx/EAS_All_METAL.txt &
+
+##AFR_All(MVP,NCI)
+nohup /home/sshen/software/metal /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx/AFR_All_METAL.txt &
+
+```
+
+### EUR_All_summary/EAS_All_summary/AFR_All_summary
+
+```R
+library(data.table)
+require(qqman) 
+load("/home/sshen/public/resource/G1000_s_hg38.RData")
+
+G1000_s = subset(G1000_s,!is.na(ID))
+G1000_s$label = paste(G1000_s$chr,G1000_s$hg38,sep=":")
+
+####EUR_All/EAS_All/AFR_All
+setwd("/home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx")
+race="EUR_All"
+temp = fread(paste0(race,"_METAANALYSIS1.TBL") )
+
+temp$CHROM=sapply(temp$MarkerName,function(x) strsplit(x,":")[[1]][1])
+#temp$CHROM=gsub("chr","",temp$CHROM)               
+temp$GENPOS=sapply(temp$MarkerName,function(x) strsplit(x,":")[[1]][2])
+
+temp$CHROM=as.numeric(temp$CHROM)   
+temp$GENPOS=as.numeric(temp$GENPOS)  
+max(-log10(temp$"P-value"))
+#230.7773 #32.63789 #17.61048
+
+tiff(paste0(race,"_manhattan.tiff"),width = 12,height =10,units = "in",res = 300) 
+manhattan(temp, chr = "CHROM", bp = "GENPOS", p = "P-value", snp = "MarkerName", col = c("deepskyblue", "blue"),ylim = c(0, 35),suggestiveline = F,genomewideline = F) 
+abline(h=-log10(5e-8),lty=2,col="red",lwd=2)
+dev.off() 
+      
+library(ggplot2)
+p_values=temp$'P-value'
+z = qnorm(p_values/ 2)
+lambda = round(median(z^2, na.rm = TRUE) / 0.454, 3) 
+#1.145 #1.062 #1.069
+tiff(paste0(race,"_QQ_plot.tiff"),width = 12,height = 12,units = "in",res = 300) 
+qq(p_values, main = "QQ Plot", xlab = expression(paste("expected -log"[10], "(p)")),
+   ylab = expression(paste("observed -log"[10], "(p)")), col = "orange")
+dev.off() 
+
+
+######eur/eas/afr
+ld="eur"
+race="EUR_All"
+prscs=fread(paste0("/home/sshen/public/resource/ldblk_ukbb_",ld,"/snpinfo_ukbb_hm3"))
+setwd("/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx")
+
+gwas=temp
+#gwas$label = paste(gwas$CHROM,gwas$GENPOS,sep=":")
+gwas$label = gwas$MarkerName
+gwas = subset(gwas,label %in% G1000_s$label)  ### filter
+gwas$SNP = G1000_s$ID[match(gwas$label,G1000_s$label)]
+gwas = subset(gwas,SNP %in% prscs$SNP)
+gwas$A1 = toupper(gwas$Allele1);gwas$A2 = toupper(gwas$Allele2)
+
+#gwas$A1 = sapply(gwas$MarkerName,function(x) strsplit(x,":")[[1]][4])
+#gwas$A2 = sapply(gwas$MarkerName,function(x) strsplit(x,":")[[1]][3])
+
+sumstats_se = gwas[,c("SNP","A1","A2","Effect","StdErr")]
+colnames(sumstats_se)=c("SNP","A1","A2","BETA","SE")
+bim = data.frame(gwas$CHROM,gwas$SNP,0,gwas$GENPOS,gwas$A1,gwas$A2)
+write.table(bim,paste0("pred_",race,".bim"),row.names=F,col.names=F,quote=F,sep="\t")
+write.table(sumstats_se,paste0("sumstats_se_",race,".txt"),row.names=F,col.names=T,quote=F,sep="\t")
+
+     
+```
+
+### AMR_summary
+
+```R
+library(data.table)
+require(qqman) 
+load("/home/sshen/public/resource/G1000_s_hg38.RData")
+
+G1000_s = subset(G1000_s,!is.na(ID))
+G1000_s$label = paste(G1000_s$chr,G1000_s$hg38,sep=":")
+
+####EUR_All/EAS_All/AFR_All
+setwd("/home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx")
+race="AMR_All"
+temp = fread("/home/sshen/EPYC/DiskA/LC_GWAS/MVP/AMR/MVP_AMR_sshen.txt")
+
+######eas/afr
+ld="amr"
+race="AMR_All"
+prscs=fread(paste0("/home/sshen/public/resource/ldblk_ukbb_",ld,"/snpinfo_ukbb_hm3"))
+setwd("/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx")
+
+gwas=temp
+gwas = subset(gwas,SNP_ID %in% prscs$SNP)
+sumstats_se = gwas[,c("SNP_ID","ea","ref","beta","SE")]
+sumstats_se=sumstats_se[sumstats_se$beta !=0,]
+colnames(sumstats_se)=c("SNP","A1","A2","BETA","SE")
+
+bim = data.frame(gwas$chrom,gwas$SNP_ID,0,gwas$pos,gwas$ea,gwas$ref)
+write.table(bim,paste0("pred_",race,".bim"),row.names=F,col.names=F,quote=F,sep="\t")
+write.table(sumstats_se,paste0("sumstats_se_",race,".txt"),row.names=F,col.names=T,quote=F,sep="\t")
+
+```
+
+
+
+### PRSCSx_eas/afr/eur
+
+```sh
+race=(EUR_All)
+ld=(eur)
+
+cd /home/sshen/software/PRScsx
+export MKL_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+export OMP_NUM_THREADS=1
+
+path_to_file="/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx"
+
+for chr in $(seq 1 22); do
+/home/sshen/software/PRScsx/PRScsx.py \
+--ref_dir=/home/sshen/public/resource \
+--bim_prefix=${path_to_file}/pred_${race} \
+--sst_file=${path_to_file}/sumstats_se_EUR_All.txt,${path_to_file}/sumstats_se_AFR_All.txt,${path_to_file}/sumstats_se_AMR_All.txt,${path_to_file}/sumstats_se_EAS_All.txt \
+--n_gwas=1390473,127278,59666,300192 \
+--pop=EUR,AFR,AMR,EAS \
+--chrom=$chr \
+--meta=True  \
+--out_dir=${path_to_file}/${race} \
+--out_name=${race}_ref_${ld} 
+done
+```
+
+
+
+### score
+
+```R
+library(data.table)
+load("/home/sshen/public/resource/G1000_s_hg38.RData")
+
+G1000_s = subset(G1000_s,!is.na(ID))
+
+race="EUR_All"
+setwd(paste0("/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/",race))
+
+for(i in 1:22){
+pvar = fread(paste0("/home/sshen/Disk_m2/PRS_yxzhang/train/white/pgen/chr",i,".pvar"))
+prs = fread(paste0(race,"_ref_eur_META_pst_eff_a1_b0.5_phiauto_chr",i,".txt"))
+
+prs$V3 = G1000_s$hg38[match(prs$V2,G1000_s$ID)]
+prs$V2 = pvar$ID[match(prs$V3,pvar$POS)]
+prs = subset(prs,!is.na(prs$V2))
+prs=prs[,c("V2","V4","V6")]
+#colnames(prs)=c("ID","allele","beta")
+write.table(prs,paste0(race,"_",i,".txt"),row.names=F,col.names=F,quote=F,sep="\t")
+  print(i)
+}
+
+
+race="AFR_All"
+setwd(paste0("/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/",race))
+
+for(i in 1:22){
+pvar = fread(paste0("/home/sshen/Disk_m2/dbGap/oncoarray_black/pgen/chr",i,".pvar"))
+prs = fread(paste0(race,"_ref_afr_META_pst_eff_a1_b0.5_phiauto_chr",i,".txt"))
+
+prs$V3 = G1000_s$hg38[match(prs$V2,G1000_s$ID)]
+prs$V2 = pvar$ID[match(prs$V3,pvar$POS)]
+prs = subset(prs,!is.na(prs$V2))
+prs=prs[,c("V2","V4","V6")]
+#colnames(prs)=c("ID","allele","beta")
+write.table(prs,paste0(race,"_",i,".txt"),row.names=F,col.names=F,quote=F,sep="\t")
+  print(i)
+}
+
+race="EAS_All"
+setwd(paste0("/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/",race))
+
+for(i in 1:22){
+pvar = fread(paste0("/home/sshen/Disk_m2/dbGap/oncoarray_asian/pgen/chr",i,".pvar"))
+prs = fread(paste0(race,"_ref_eas_META_pst_eff_a1_b0.5_phiauto_chr",i,".txt"))
+
+prs$V3 = G1000_s$hg38[match(prs$V2,G1000_s$ID)]
+prs$V2 = pvar$ID[match(prs$V3,pvar$POS)]
+prs = subset(prs,!is.na(prs$V2))
+prs=prs[,c("V2","V4","V6")]
+#colnames(prs)=c("ID","allele","beta")
+write.table(prs,paste0(race,"_",i,".txt"),row.names=F,col.names=F,quote=F,sep="\t")
+  print(i)
+}
+
+
+beta=NULL
+for(i in 1:22){
+  tmp=fread(paste0("/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/EUR_All/EUR_All_",i,".txt"))
+  beta=rbind(beta,tmp)
+  }
+write.table(beta,paste0("/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/EUR_All.txt"),row.names=F,col.names=F,quote=F,sep="\t")
+
+beta=NULL
+for(i in 1:22){
+  tmp=fread(paste0("/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/EAS_All/EAS_All_",i,".txt"))
+  beta=rbind(beta,tmp)
+  }
+write.table(beta,paste0("/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/EAS_All.txt"),row.names=F,col.names=F,quote=F,sep="\t")
+
+beta=NULL
+for(i in 1:22){
+  tmp=fread(paste0("/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/AFR_All/AFR_All_",i,".txt"))
+  beta=rbind(beta,tmp)
+  }
+write.table(beta,paste0("/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/AFR_All.txt"),row.names=F,col.names=F,quote=F,sep="\t")
+```
+
+```sh
+####eas
+race="EAS_All"
+cohort="oncoarray_eas"
+cd /home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/$race
+
+for chr in $(seq 1 22); do
+nohup ~/software/plink2 \
+--pfile /home/sshen/Disk_m2/dbGap/oncoarray_asian/pgen/chr$chr \
+--score ${race}_${chr}.txt cols=+scoresums \
+--out ${race}_${cohort}$chr &
+done
+
+
+####afr
+race="AFR_All"
+cohort="oncoarray_afr"
+cd /home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/$race
+
+for chr in $(seq 1 22); do
+nohup ~/software/plink2 \
+--pfile /home/sshen/Disk_m2/dbGap/oncoarray_black/pgen/chr$chr \
+--score ${race}_${chr}.txt cols=+scoresums \
+--out ${race}_${cohort}$chr &
+done
+ 
+ ######TRICL
+ race="EAS_All"
+ cohort="TRICL_eas"
+cd /home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/$race
+
+for chr in $(seq 1 22); do
+nohup ~/software/plink2 \
+--pfile /home/sshen/DiskB/TRICL/pgen/chr$chr \
+--score ${race}_${chr}.txt cols=+scoresums \
+--out ${race}_${cohort}$chr &
+done
+
+####afr
+race="AFR_All"
+ cohort="TRICL_afr"
+cd /home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx/$race
+
+for chr in $(seq 1 22); do
+nohup ~/software/plink2 \
+--pfile /home/sshen/DiskB/TRICL/pgen/chr$chr \
+--score ${race}_${chr}.txt cols=+scoresums \
+--out ${race}_${cohort}$chr &
+done
+```
+
+
+
+### prs_eas
+
+```R
+rm(list = ls())
+suppressMessages(library(optparse))
+suppressMessages(library(data.table))
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(pROC))
+option_list = list(
+make_option("--train_out", action="store", default="/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx", type='character',
+help="Path to output files [required]"),
+make_option("--train_pheno", action="store", default="/home/sshen/Disk_m2/PRS_yxzhang/train/asian/pheno_1974", type='character',help="pheno [required]"),
+make_option("--train", action="store", default="EAS_All", type='character',help="trait [required]"),
+  make_option("--cohort", action="store", default="oncoarray_eas", type='character',help="trait [required]"),
+make_option("--trait", action="store", default="LungCa", type='character',help="trait [required]")
+)
+opt = parse_args(OptionParser(option_list=option_list))
+setwd(opt$train_out)
+
+score=NULL
+for(i in 1:22){
+  if (file.exists(paste0(opt$train_out,"/",opt$train,"/",opt$train,"_",opt$cohort,i,".sscore"))) {
+    x=fread(paste0(opt$train_out,"/",opt$train,"/",opt$train,"_",opt$cohort,i,".sscore"))
+    if(colnames(x)[1]=="#FID") x = x[,-1]
+    colnames(x)[1] = "IID"
+    y=x[,"IID"]
+    #x$SCORE1_SUM=x$SCORE1_AVG*x$ALLELE_CT
+    x=x[,5]
+    setnames(x,c("SCORE1_SUM"),c(paste0("chr",i)))
+    score=cbind(score,x)
+  }
+}
+
+score$PRS<- rowSums(score)
+
+score=cbind(y,score)
+cols=c("IID","PRS")
+score=score[,..cols]
+write.table(score,paste0(opt$train_out,"/",opt$train,"/",opt$train,"_",opt$cohort,"_prs.txt"),row.names = F,quote=F,sep="\t")
+
+covar_onco = fread(paste0(opt$train_pheno,".txt"))
+prs = merge(score,covar_onco,by="IID");prs[,2] = apply(prs[,2],2,scale)
+
+
+model = glm(Lungcancer~PRS,family = binomial,data = prs)
+ auc(roc(prs$Lungcancer,prs$PRS))
+exp(coef(model)[2])
+coef(summary(model))[2,4]
+
+```
+
+
+
+### prs_afr
+
+```R
+rm(list = ls())
+suppressMessages(library(optparse))
+suppressMessages(library(data.table))
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(pROC))
+option_list = list(
+make_option("--train_out", action="store", default="/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx", type='character',
+help="Path to output files [required]"),
+make_option("--train_pheno", action="store", default="/home/sshen/Disk_m2/PRS_yxzhang/train/black/pheno_532", type='character',help="pheno [required]"),
+make_option("--train", action="store", default="AFR_All", type='character',help="trait [required]"),
+  make_option("--cohort", action="store", default="oncoarray_afr", type='character',help="trait [required]"),
+make_option("--trait", action="store", default="LungCa", type='character',help="trait [required]")
+)
+opt = parse_args(OptionParser(option_list=option_list))
+setwd(opt$train_out)
+
+```
+
+### prs_TRICL
+
+```R
+rm(list = ls())
+suppressMessages(library(optparse))
+suppressMessages(library(data.table))
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(pROC))
+option_list = list(
+make_option("--train_out", action="store", default="/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx", type='character',
+help="Path to output files [required]"),
+make_option("--train", action="store", default="AFR_All", type='character',help="trait [required]"),
+  make_option("--cohort", action="store", default="TRICL_afr", type='character',help="trait [required]"),
+make_option("--trait", action="store", default="LungCa", type='character',help="trait [required]")
+)
+opt = parse_args(OptionParser(option_list=option_list))
+setwd(opt$train_out)
+score=NULL
+for(i in 1:22){
+  if (file.exists(paste0(opt$train_out,"/",opt$train,"/",opt$train,"_",opt$cohort,i,".sscore"))) {
+    x=fread(paste0(opt$train_out,"/",opt$train,"/",opt$train,"_",opt$cohort,i,".sscore"))
+    if(colnames(x)[1]=="#FID") x = x[,-1]
+    colnames(x)[1] = "IID"
+    y=x[,"IID"]
+    #x$SCORE1_SUM=x$SCORE1_AVG*x$ALLELE_CT
+    x=x[,5]
+    setnames(x,c("SCORE1_SUM"),c(paste0("chr",i)))
+    score=cbind(score,x)
+  }
+}
+
+score$PRS<- rowSums(score)
+
+score=cbind(y,score)
+cols=c("IID","PRS")
+score=score[,..cols]
+write.table(score,paste0(opt$train_out,"/",opt$train,"/",opt$train,"_",opt$cohort,"_prs.txt"),row.names = F,quote=F,sep="\t")
+
+load("/home/sshen/Disk_m2/PRS/TRICL_multiethnic.RData")
+phe=pheno
+phe$Lungcancer = phe$disease
+phe=phe[phe$Lungcancer!= -9] 
+covar_onco = phe[phe$ethnicity1==5,]
+
+prs = merge(score,covar_onco,by.x="IID",by.y="individual_ID");prs[,2] = apply(prs[,2],2,scale)
+
+model = glm(Lungcancer~PRS,family = binomial,data = prs)
+ auc(roc(prs$Lungcancer,prs$PRS))
+exp(coef(model)[2])
+coef(summary(model))[2,4]
+
+
+rm(list = ls())
+suppressMessages(library(optparse))
+suppressMessages(library(data.table))
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(pROC))
+option_list = list(
+make_option("--train_out", action="store", default="/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx", type='character',
+help="Path to output files [required]"),
+make_option("--train", action="store", default="EAS_All", type='character',help="trait [required]"),
+  make_option("--cohort", action="store", default="TRICL_eas", type='character',help="trait [required]"),
+make_option("--trait", action="store", default="LungCa", type='character',help="trait [required]")
+)
+opt = parse_args(OptionParser(option_list=option_list))
+setwd(opt$train_out)
+
+load("/home/sshen/Disk_m2/PRS/TRICL_multiethnic.RData")
+phe=pheno
+phe$Lungcancer = phe$disease
+phe=phe[phe$Lungcancer!= -9] 
+covar_onco = phe[phe$ethnicity1==6,]
+
+prs = merge(score,covar_onco,by.x="IID",by.y="individual_ID");prs[,2] = apply(prs[,2],2,scale)
+
+model = glm(Lungcancer~PRS,family = binomial,data = prs)
+ auc(roc(prs$Lungcancer,prs$PRS))
+exp(coef(model)[2])
+coef(summary(model))[2,4]
+
+
+rm(list = ls())
+suppressMessages(library(optparse))
+suppressMessages(library(data.table))
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(pROC))
+option_list = list(
+make_option("--train_out", action="store", default="/home/sshen/Disk_m2/PRS/LungCa_V3/PRSCSx", type='character',
+help="Path to output files [required]"),
+make_option("--train", action="store", default="EUR_Onco", type='character',help="trait [required]"),
+  make_option("--cohort", action="store", default="TRICL_eur", type='character',help="trait [required]"),
+make_option("--trait", action="store", default="LungCa", type='character',help="trait [required]")
+)
+opt = parse_args(OptionParser(option_list=option_list))
+setwd(opt$train_out)
+
+load("/home/sshen/Disk_m2/PRS/TRICL_multiethnic.RData")
+phe=pheno
+phe$Lungcancer = phe$disease
+phe=phe[phe$Lungcancer!= -9] 
+covar_onco = phe[phe$ethnicity1==1,]
+prs = merge(score,covar_onco,by.x="IID",by.y="individual_ID");prs[,2] = apply(prs[,2],2,scale)
+
+model = glm(Lungcancer~PRS,family = binomial,data = prs)
+ auc(roc(prs$Lungcancer,prs$PRS))
+exp(coef(model)[2])
+coef(summary(model))[2,4]
+
+```
+
+
+
+
+
+## NCI（eur_all + eas_all + afr_except NCI + amr_all）
+
+## FLCCA（eur_all + eas_except FLCCA + afr_all + amr_all）
+
+```sh
+cd /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx
+##EAS_FLCCA (CKB,BBJ)
+nohup /home/sshen/software/metal /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx/EAS_FLCCA_METAL.txt &
+```
+
+## PLCO（eur_except PLCO + eas_all + afr_all + amr_all）
+
+```sh
+cd /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx
+##EUR_PLCO (ILCCO,MVP,FinnGen,UKB)
+nohup /home/sshen/software/metal /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx/EUR_PLCO_METAL.txt &
+```
+
+## OncoArray （eur_except OncoArray + eas_all + afr_all + amr_all）
+
+```sh
+cd /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx
+##EUR_OncoArray (MVP,FinnGen,UKB,PLCO)
+nohup /home/sshen/software/metal /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx/EUR_Onco_METAL.txt &
+```
+
+## UKB（eur_except UKB + eas_all + afr_all + amr_all）
+
+```sh
+cd /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx
+##EUR_UKB (ILCCO,MVP,FinnGen,PLCO)
+nohup /home/sshen/software/metal /home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/PRSCSx/EUR_UKB_METAL.txt &
+
+```
+
+### 
