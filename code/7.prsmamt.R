@@ -442,6 +442,7 @@ prs1$MAMT <- (prs1$MAMT - mean(prs1$MAMT[prs1$Lungcancer==0]))/sd(prs1$MAMT[prs1
 
 m0=glm(Lungcancer~age+factor(sex)+factor(smoking_status),family = binomial,data = prs1);summary(m0)
 m1 = glm(Lungcancer~age+factor(sex)+factor(smoking_status)+MAMT,family = binomial,data = prs1)
+anova(m0, m1, test = "LRT")
 delta=fmsb::NagelkerkeR2(m1)$R2- fmsb::NagelkerkeR2(m0)$R2
 re=rbind(re,data.frame(Cohort=study,Ancestry=race,
                        Model="Lungcancer ~ age+sex+smoking_status",
@@ -513,6 +514,7 @@ prs1$smoking_status=ifelse(prs1$smoke==2,1,0)
 
 m0=glm(Lungcancer~age+factor(gender)+factor(smoking_status),family = binomial,data = prs1);summary(m0)
 m1 = glm(Lungcancer~age+factor(gender)+factor(smoking_status)+MAMT,family = binomial,data = prs1)
+anova(m0, m1, test = "LRT")
 delta=fmsb::NagelkerkeR2(m1)$R2- fmsb::NagelkerkeR2(m0)$R2
 re=rbind(re,data.frame(Cohort=study,Ancestry=race,
                        Model="Lungcancer ~ age+sex+smoking_status",
@@ -532,6 +534,7 @@ race="Multi"
 
 m0=glm(Lungcancer~plco,family = binomial,data = prs);summary(m0)
 m1 = glm(Lungcancer~plco+MAMT,family = binomial,data = prs);summary(m1)
+anova(m0, m1, test = "LRT")
 delta=fmsb::NagelkerkeR2(m1)$R2- fmsb::NagelkerkeR2(m0)$R2
 re=rbind(re,data.frame(Cohort=study,Ancestry=race,
                        Model="Lungcancer ~ PLCO",
