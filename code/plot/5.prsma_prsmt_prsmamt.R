@@ -10,13 +10,13 @@ library(ggbreak)
 library(patchwork)
 
 ###prsma prsmt prsmamt####
-afr=read.xlsx("/Users/zhangyixin/Desktop/03Nature_Communications/z_resubmit/result/PRSMA_MT/final_perform_afr.xlsx")
+afr=read.xlsx("../data/final_perform_afr.xlsx")
 afr$race="African"
 
-eas=read.xlsx("/Users/zhangyixin/Desktop/03Nature_Communications/z_resubmit/result/PRSMA_MT/final_perform_eas.xlsx")
+eas=read.xlsx("../data/final_perform_eas.xlsx")
 eas$race="Asian"
 
-eur=read.xlsx("/Users/zhangyixin/Desktop/03Nature_Communications/z_resubmit/result/PRSMA_MT/final_perform_eur.xlsx")
+eur=read.xlsx("../data/final_perform_eur.xlsx")
 eur$race="European"
 
 
@@ -82,7 +82,7 @@ p=ggplot(data, aes(x=Study, y=Effect,color=PRS_race,fill=PRS_race)) +
         plot.margin = margin(5, 5, 5, 30),panel.spacing = unit(1, "lines")
   ) + coord_cartesian(clip = "off") + scale_y_break(c(0,0.4))+facet_wrap(~race,ncol=3)
 p
-ggsave(paste0("/Users/zhangyixin/Desktop/03Nature_Communications/z_resubmit/Figure/bar_y3_auc.png"),p,width = 20,height = 10,units = "in",dpi = 300)
+ggsave(paste0("../results/bar_y3_auc.png"),p,width = 20,height = 10,units = "in",dpi = 300)
 dev.off()
 
 
@@ -132,5 +132,5 @@ p=ggplot(data, aes(x=Study, y=Effect,color=PRS_race,fill=PRS_race)) +
         plot.margin = margin(5, 5, 5, 30),panel.spacing = unit(1, "lines")
   )+coord_cartesian(clip = "off") +facet_wrap(~race,ncol=3)
 p
-ggsave(paste0("/Users/zhangyixin/Desktop/03Nature_Communications/z_resubmit/Figure/bar_y3_or.png"),width = 20,height = 10,units = "in",dpi = 300)
+ggsave(paste0("../results/bar_y3_or.png"),width = 20,height = 10,units = "in",dpi = 300)
 dev.off()

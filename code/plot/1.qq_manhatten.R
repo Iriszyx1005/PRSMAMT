@@ -9,7 +9,7 @@ library(ggrepel)
 library(ggbreak)
 library(patchwork)
 ####QQ plot#####
-lc_meta = fread("/home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/01META_All.txt.gz")
+lc_meta = fread("../data/01META_All.txt.gz")
 #lc_meta = subset(lc_meta,Freq1>0.01 & Freq1<0.99)
 dta_plot = data.frame(SNP = lc_meta$MarkerName,Chromosome =lc_meta$chr,Position = lc_meta$pos,trait1 = lc_meta$PvalueARE)
 
