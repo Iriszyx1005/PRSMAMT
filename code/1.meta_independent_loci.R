@@ -70,15 +70,15 @@ write.table(y,paste0(out,"/ng.txt"), row.names = FALSE,col.names = FALSE,quote =
 
 ng <- fread(paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/ng.txt"),header=F)
 colnames(ng) <- c("SNP")
-ng$chr=sapply(ng$SNP,function(x) strsplit(x,":")[[1]][1])
-ng$pos=sapply(ng$SNP,function(x) strsplit(x,":")[[1]][2]) 
-ng$cytoband = cytobandmap(ng$chr,ng$pos)
+#ng$chr=sapply(ng$SNP,function(x) strsplit(x,":")[[1]][1])
+#ng$pos=sapply(ng$SNP,function(x) strsplit(x,":")[[1]][2]) 
+#ng$cytoband = cytobandmap(ng$chr,ng$pos)
 
 ###+GWAS Catalog
 catalog <- read.table("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/gwas-association-downloaded_2025-10-20-MONDO_0008903-withChildTraits.tsv", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 catalog=catalog[catalog$'P.VALUE'<5e-8,]             
 catalog=catalog[,c("CHR_ID","CHR_POS","SNPS","REGION")]
-catalog$SNP=paste0(catalog$CHR_ID,":",catalog$CHR_POS)
+catalog$SNP=paste0(catalog$CHR_ID,":",catalog$CHR_POS) #685
 
 c1=catalog[catalog$CHR_ID=="",]
 c1$SNP=gsub("chr", "",c1$SNPS)
@@ -86,7 +86,9 @@ c1 <- c1[!grepl("^rs", c1$SNP), ]
 
 catalog=catalog[catalog$CHR_ID %in% 1:22,]
 catalog=rbind(catalog,c1)
-catalog$cytoband = cytobandmap(catalog$CHR_ID,catalog$CHR_POS)
+#catalog$CHR_ID=as.numeric(catalog$CHR_ID)
+#catalog$CHR_POS=as.numeric(catalog$CHR_POS)
+#catalog$cytoband = cytobandmap(catalog$CHR_ID,catalog$CHR_POS)
 
 x=data.frame(SNP=catalog[,"SNP"])
 x=unique(x) #434
@@ -186,7 +188,7 @@ load("/home/sshen/public/resource/G1000_s_hg38.RData")
 G1000_s$label = paste(G1000_s$chr,G1000_s$hg38,sep=":")
 new=novel$SNP 
 a=G1000_s[G1000_s$label %in% new,]
-novel=merge(novel,a,by.x="SNP",by.y="label")  
+novel=merge(novel,a,by.x="SNP",by.y="label",all.x = TRUE)  
 novel$rsid=ifelse(novel$rsid=="",novel$SNP,novel$rsid)
 novel1=novel[,c("rsid","cytoband","Chr","bp","ref","alt","EAF","OR","SE","gene_name","Consequence","p","pJ")]
 novel1=novel1[order(novel1$Chr,novel1$bp),]   
@@ -224,6 +226,6 @@ new_region=setdiff(novel1$Cytoband,catalog_ng_snp$cytoband)
 new1=novel1[novel1$Cytoband %in% new_region,]
 novel1$Strata=ifelse(novel1$Cytoband %in% new_region,"New","Known")
 
-write.xlsx(new1,paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/new_region_ref_ng_catalog_1204.xlsx"),rowNames = F,quote=F,sep="\t")
-write.xlsx(novel1,paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/new_snp_ref_ng_catalog_1204.xlsx"),rowNames = F,quote=F,sep="\t")
+write.xlsx(new1,paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/new_region_ref_ng_catalog_0301.xlsx"),rowNames = F,quote=F,sep="\t")
+write.xlsx(novel1,paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/new_snp_ref_ng_catalog_0301.xlsx"),rowNames = F,quote=F,sep="\t")
 
