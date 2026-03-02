@@ -188,7 +188,9 @@ load("/home/sshen/public/resource/G1000_s_hg38.RData")
 G1000_s$label = paste(G1000_s$chr,G1000_s$hg38,sep=":")
 new=novel$SNP 
 a=G1000_s[G1000_s$label %in% new,]
-novel=merge(novel,a,by.x="SNP",by.y="label",all.x = TRUE)  
+novel$gene_name <- a$gene_name[match(novel$SNP, a$label)]
+novel$Consequence <- a$Consequence[match(novel$SNP, a$label)]
+#novel=merge(novel,a,by.x="SNP",by.y="label",all.x = TRUE)  
 novel$rsid=ifelse(novel$rsid=="",novel$SNP,novel$rsid)
 novel1=novel[,c("rsid","cytoband","Chr","bp","ref","alt","EAF","OR","SE","gene_name","Consequence","p","pJ")]
 novel1=novel1[order(novel1$Chr,novel1$bp),]   
@@ -224,8 +226,8 @@ catalog_ng_snp$cytoband = cytobandmap(catalog_ng_snp$chr,catalog_ng_snp$pos)
 ##new region
 new_region=setdiff(novel1$Cytoband,catalog_ng_snp$cytoband)
 new1=novel1[novel1$Cytoband %in% new_region,]
-novel1$Strata=ifelse(novel1$Cytoband %in% new_region,"New","Known")
+novel1$Strata=ifelse(novel1$Cytoband %in% new_region,"New#"," ")
 
-write.xlsx(new1,paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/new_region_ref_ng_catalog_0301.xlsx"),rowNames = F,quote=F,sep="\t")
-write.xlsx(novel1,paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/new_snp_ref_ng_catalog_0301.xlsx"),rowNames = F,quote=F,sep="\t")
+write.xlsx(new1,paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/new_region_ref_ng_catalog_0302.xlsx"),rowNames = F,quote=F,sep="\t")
+write.xlsx(novel1,paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/new_snp_ref_ng_catalog_0302.xlsx"),rowNames = F,quote=F,sep="\t")
 
