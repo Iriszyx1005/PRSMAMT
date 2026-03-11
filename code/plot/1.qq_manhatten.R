@@ -20,7 +20,7 @@ lambda = round(median(z^2, na.rm = TRUE) / 0.454, 3)
 
 setwd("/home/sshen/Disk_m2/PRS/plot")  
 setnames(dta_plot,"trait1","P value")
-CMplot(dta_plot,plot.type="q",box=FALSE,file="tiff",file.name="",dpi=300,
+CMplot(dta_plot,plot.type="q",box=FALSE,file="pdf",file.name="",dpi=300,
        conf.int=TRUE,conf.int.col=NULL,threshold.col="#4b8bad",threshold.lty=2,
        file.output=TRUE,verbose=TRUE,width=6,height=6)
 

@@ -11,13 +11,13 @@ library(patchwork)
 
 ###prsma prsmt prsmamt####
 afr=read.xlsx("../data/final_perform_afr.xlsx")
-afr$race="African"
+afr$ancestry="African"
 
 eas=read.xlsx("../data/final_perform_eas.xlsx")
-eas$race="Asian"
+eas$ancestry="Asian"
 
 eur=read.xlsx("../data/final_perform_eur.xlsx")
-eur$race="European"
+eur$ancestry="European"
 
 
 afr$Effect=round(afr$Effect,3)
@@ -37,12 +37,12 @@ data=x[x$Metric=="AUC",]
 data=data[order(data$Study),]
 data$PRS=ifelse(data$PRS=="PRSMA","y0",ifelse(data$PRS=="PRSMT","y1","y2"))
 
-data$PRS_race <- interaction(data$PRS,data$race) 
+data$PRS_ancestry <- interaction(data$PRS,data$ancestry) 
 
 final_colors=c("#C1DEF2","#88B7DC","#3780BD",
                "#C0DAAE","#90B17D","#578144",
                "#FDEDA1", "#F7D76B", "#E1B844")
-names(final_colors) <- unique(data$PRS_race) 
+names(final_colors) <- unique(data$PRS_ancestry) 
 
 #final_colors=c("#EFEDF5","#DADAEB","#BCBDDC")
 #names(final_colors) <-unique(data$y)
@@ -59,7 +59,7 @@ legend_labels <- c(
 )
 
 
-p=ggplot(data, aes(x=Study, y=Effect,color=PRS_race,fill=PRS_race)) + 
+p=ggplot(data, aes(x=Study, y=Effect,color=PRS_ancestry,fill=PRS_ancestry)) + 
   geom_bar(stat = "identity", width = 0.7,position = position_dodge(width = 0.7)) + 
   scale_fill_manual(values=final_colors, labels = legend_labels) +
   scale_color_manual(values = final_colors, labels = legend_labels) +  
@@ -70,17 +70,18 @@ p=ggplot(data, aes(x=Study, y=Effect,color=PRS_race,fill=PRS_race)) +
   #labs(x="Study") +
   scale_y_continuous("AUC",expand =c(0,0),limits =c(0,0.75),n.breaks = 8) +
   theme(panel.background=element_blank(),
-        axis.title = element_text(size=20,color="black"),
+        axis.title = element_text(size=25,color="black"),
         #  plot.title = element_text(size=20,face = "bold.italic",hjust=0.5),
-        axis.text = element_text(size=20,color="black"),
+        axis.text = element_text(size=25,color="black"),
         legend.text = element_text(size = 20),  
-        legend.title = element_text(size = 20),  
+        legend.title = element_text(size = 20), 
+        legend.position = "top",
         axis.line = element_line(color="black" ,linewidth = 0.5),
         axis.ticks.length = unit(-1,"mm"),
-        strip.text = element_text(size = 20),
-        #     axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 25),
+        axis.text.x = element_text(angle = 30, hjust = 1),
         plot.margin = margin(5, 5, 5, 30),panel.spacing = unit(1, "lines")
-  ) + coord_cartesian(clip = "off") + scale_y_break(c(0,0.4))+facet_wrap(~race,ncol=3)
+  ) + coord_cartesian(clip = "off") + scale_y_break(c(0,0.4))+facet_wrap(~ancestry,ncol=3)
 p
 ggsave(paste0("../results/bar_y3_auc.png"),p,width = 20,height = 10,units = "in",dpi = 300)
 dev.off()
@@ -90,12 +91,12 @@ data=x[x$Metric=="OR/SD",]
 data=data[order(data$Study),]
 data$PRS=ifelse(data$PRS=="PRSMA","y0",ifelse(data$PRS=="PRSMT","y1","y2"))
 
-data$PRS_race <- interaction(data$PRS,data$race) 
+data$PRS_ancestry <- interaction(data$PRS,data$ancestry) 
 final_colors=c("#C1DEF2","#88B7DC","#3780BD",
                "#C0DAAE","#90B17D","#578144",
                "#FDEDA1", "#F7D76B", "#E1B844")
 
-names(final_colors) <- unique(data$PRS_race) 
+names(final_colors) <- unique(data$PRS_ancestry) 
 legend_labels <- c(
   "y0.Asian" = expression(paste(PRS["MA"], "_Asian")),
   "y1.Asian" = expression(paste(PRS["MT"], "_Asian")),
@@ -109,7 +110,7 @@ legend_labels <- c(
 )
 
 
-p=ggplot(data, aes(x=Study, y=Effect,color=PRS_race,fill=PRS_race)) + 
+p=ggplot(data, aes(x=Study, y=Effect,color=PRS_ancestry,fill=PRS_ancestry)) + 
   geom_bar(stat = "identity", width = 0.7,position = position_dodge(width = 0.7)) + 
   scale_fill_manual(values=final_colors, labels = legend_labels) +
   scale_color_manual(values = final_colors, labels = legend_labels) +  
@@ -130,7 +131,7 @@ p=ggplot(data, aes(x=Study, y=Effect,color=PRS_race,fill=PRS_race)) +
         strip.text = element_text(size = 20),
         #     axis.text.x = element_text(angle = 45, hjust = 1),
         plot.margin = margin(5, 5, 5, 30),panel.spacing = unit(1, "lines")
-  )+coord_cartesian(clip = "off") +facet_wrap(~race,ncol=3)
+  )+coord_cartesian(clip = "off") +facet_wrap(~ancestry,ncol=3)
 p
 ggsave(paste0("../results/bar_y3_or.png"),width = 20,height = 10,units = "in",dpi = 300)
 dev.off()

@@ -27,8 +27,12 @@ colnames(heat1) <- gsub("_white", "_European", colnames(heat1))
 colnames(heat1) <- gsub("_asian", "_Asian", colnames(heat1))
 colnames(heat1) <- gsub("_black", "_African", colnames(heat1))
 colnames(heat1) <- gsub("Onco_", "OncoArray_", colnames(heat1))
-tiff('plot/pheatmap_multitrait1.tiff',width = 11, height =20 ,units = "in",res = 300)
-pheatmap(heat1,fontsize=15, fontsize_row=23,fontsize_col=23,cluster_cols = F,cluster_rows = F,show_colnames = T,color = colorRampPalette(c("white","red"))(100),breaks = seq(0.5,0.6,length=100), border_color = "grey10",display_numbers = T,angle_col =90)
+pdf(paste0("plot/pheatmap_multitrait2.pdf"), width = 11, height =19)
+pheatmap(heat1,fontsize=25, fontsize_row=25,fontsize_col=25,cluster_cols = F,
+         cluster_rows = F,show_colnames = T, cellheight = 33,cellwidth = 33,
+         color = colorRampPalette(c("white","red"))(100),breaks = seq(0.5,0.6,length=100), 
+         border_color = "grey10",display_numbers = F,angle_col =90)
+
 dev.off()
 
 

@@ -134,27 +134,8 @@ for(i in 1:22){
   print(i)
 }
 
-data$log10P = -log10(data$p)
-data$log10pJ= -log10(data$pJ)
-data$log10P_log10pJ=data$log10P/data$log10pJ
+data$Cytoband = cytobandmap(data$Chr,data$bp)
 
-
-##新位点
-ng=fread(paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/catalog_ng_snp.txt"),header=F)
-colnames(ng)=c("SNP")
-
-jma=data$SNP #87
-ngsnp=ng$SNP
-new=setdiff(jma, ngsnp)
-old=intersect(jma, ngsnp)
-novel=data[data$SNP %in% new,]  
-novel=novel[novel$log10P_log10pJ<1.5,] #69
-
-#write.table(data,file = paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/meta_sig_indep.txt"),row.names = FALSE, quote = FALSE)
-
-novel$cytoband = cytobandmap(novel$Chr,novel$bp)
-
-data$cytoband = cytobandmap(data$Chr,data$bp)
 ####+rsid                   
 gwas_data =fread("/home/sshen/EPYC/DiskA/LC_GWAS/LC_META_shen/01META_All.txt.gz")
 gwas_data$Allele1=toupper(gwas_data$Allele1)
@@ -163,39 +144,22 @@ gwas_data$Allele2=toupper(gwas_data$Allele2)
 data_id=data$SNP
 c=gwas_data[gwas_data$MarkerName %in% data_id,]
 df=merge(data,c,by.x="SNP",by.y="MarkerName")
-final=df[,c("chr","pos","rsid","SNP","Allele1","Allele2","Freq1","Effect","StdErr","Pvalue","Direction","HetISq","HetChiSq","HetDf","HetPVal","EffectARE","StdErrARE","PvalueARE","tausq","StdErrMRE","PvalueMRE")]                              
-colnames(final)=c("CHROM","GENPOS","rsid","SNP","effect_allele","other_allele","Freq1","Effect","StdErr","Pvalue","Direction","HetISq","HetChiSq","HetDf","HetPVal","EffectARE","StdErrARE","PvalueARE","tausq","StdErrMRE","PvalueMRE")
+final=df[,c("chr","pos","rsid","SNP","Cytoband","Allele1","Allele2","Freq1","Effect","StdErr","Pvalue","Direction","HetISq","HetChiSq","HetDf","HetPVal","EffectARE","StdErrARE","PvalueARE","pJ","tausq","StdErrMRE","PvalueMRE")]                              
+colnames(final)=c("CHROM","GENPOS","rsid","SNP","Cytoband","effect_allele","other_allele","Freq1","Effect","StdErr","Pvalue","Direction","HetISq","HetChiSq","HetDf","HetPVal","EffectARE","StdErrARE","PvalueARE","P_conditional","tausq","StdErrMRE","PvalueMRE")
 final=final[order(final$CHROM,final$GENPOS),]   
-write.xlsx(final,paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/meta_sig_indep.xlsx"),rowNames = F,quote=F,sep="\t")
+write.xlsx(final,paste0("meta_sig_indep.xlsx"),rowNames = F,quote=F,sep="\t")
 
-
-new=novel$SNP
-b=gwas_data[gwas_data$MarkerName %in% new,]                         
-b=b[,c("MarkerName","rsid","Freq1","Allele1","Allele2","EffectARE","StdErrARE")]
-b$OR=exp(b$EffectARE)
-b$SE= exp(b$EffectARE)*b$StdErrARE
-colnames(b)=c("SNP","rsid","EAF","alt","ref","EffectARE","StdErrARE","OR","SE")                            
-novel=merge(novel,b,by="SNP")
-#novel=novel[order(novel$Chr,novel$bp),]
-
-# 95% CI
-#CI_lower <- exp(beta - 1.96 * se_beta)
-#CI_upper <- exp(beta + 1.96 * se_beta)
 
 
 ##Annotation
 load("/home/sshen/public/resource/G1000_s_hg38.RData")
 G1000_s$label = paste(G1000_s$chr,G1000_s$hg38,sep=":")
-new=novel$SNP 
-a=G1000_s[G1000_s$label %in% new,]
-novel$gene_name <- a$gene_name[match(novel$SNP, a$label)]
-novel$Consequence <- a$Consequence[match(novel$SNP, a$label)]
-#novel=merge(novel,a,by.x="SNP",by.y="label",all.x = TRUE)  
-novel$rsid=ifelse(novel$rsid=="",novel$SNP,novel$rsid)
-novel1=novel[,c("rsid","cytoband","Chr","bp","ref","alt","EAF","OR","SE","gene_name","Consequence","p","pJ")]
-novel1=novel1[order(novel1$Chr,novel1$bp),]   
-colnames(novel1)=c("SNP","Cytoband","Chr","Position","REF","ALT","EAF","OR","SE","Nearest gene","Consequence","P","PJ")
-
+snplist=final$SNP 
+a=G1000_s[G1000_s$label %in% snplist,]
+final$gene_name <- a$gene_name[match(final$SNP, a$label)]
+final$Consequence <- a$Consequence[match(final$SNP, a$label)]
+#final=merge(final,a,by.x="SNP",by.y="label",all.x = TRUE)  
+final$rsid=ifelse(final$rsid=="",final$SNP,final$rsid)
 
 #new cytoband
 ng <- fread(paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/ng.txt"),header=F)
@@ -223,11 +187,10 @@ catalog_ng_snp$chr=as.numeric(catalog_ng_snp$chr)
 catalog_ng_snp$pos=as.numeric(catalog_ng_snp$pos)   
 catalog_ng_snp$cytoband = cytobandmap(catalog_ng_snp$chr,catalog_ng_snp$pos)
 
-##new region
-new_region=setdiff(novel1$Cytoband,catalog_ng_snp$cytoband)
-new1=novel1[novel1$Cytoband %in% new_region,]
-novel1$Strata=ifelse(novel1$Cytoband %in% new_region,"New#"," ")
+##region
+region=setdiff(final$Cytoband,catalog_ng_snp$cytoband)
+region1=final[final$Cytoband %in% region,]
 
-write.xlsx(new1,paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/new_region_ref_ng_catalog_0302.xlsx"),rowNames = F,quote=F,sep="\t")
-write.xlsx(novel1,paste0("/home/sshen/Disk_m2/PRS_yxzhang/indepent_snp/new/new_snp_ref_ng_catalog_0302.xlsx"),rowNames = F,quote=F,sep="\t")
+write.xlsx(region1,paste0("unreported_region.xlsx"),rowNames = F,quote=F,sep="\t")
+write.xlsx(final,paste0("cond_snp_ref_ng_catalog.xlsx"),rowNames = F,quote=F,sep="\t")
 
